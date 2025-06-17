@@ -7,12 +7,14 @@ public class Aiming : MonoBehaviour
     private Animator _animator;
 
     [SerializeField] private GameObject _arrowPrefab;
-    private List<GameObject> _arrows;
-
+    [SerializeField] private GameObject _arrowParent;
     [SerializeField] private Vector3 arrowOffsets = new Vector3(0, 0, 0f);
+    [SerializeField] private float arrowForce;
+    private List<GameObject> _arrows;
+    private Arrow _currentArrowScript;
 
     private float mouseInputX;
-    private float mouseInputY;
+
     void Start()
     {
         _animator = GetComponent<Animator>();
@@ -27,12 +29,16 @@ public class Aiming : MonoBehaviour
 
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Mouse0)) {
+        if (Input.GetKeyDown(KeyCode.Mouse0) && _currentArrowScript == null) {
             _animator.SetBool("Aiming", true);
             StartCoroutine(FireArrow());
         }
-        if (Input.GetKeyUp(KeyCode.Mouse0))
+        if (Input.GetKeyUp(KeyCode.Mouse0) && _currentArrowScript != null)
+        {
             _animator.SetBool("Aiming", false);
+            ShootArrow();
+        }
+
 
         Movement();
     }
@@ -68,6 +74,7 @@ public class Aiming : MonoBehaviour
         {
             transform.Translate(Vector3.right * 0.1f, Space.World);
         }
+
     }
 
     void InitPoolOfArrows()
@@ -83,7 +90,7 @@ public class Aiming : MonoBehaviour
         }
     }
 
-    void GetArrowFromPool()
+    private void GetArrowFromPool()
     {
         foreach (GameObject arrow in _arrows)
         {
@@ -91,11 +98,23 @@ public class Aiming : MonoBehaviour
             {
                 arrow.SetActive(true);
                 arrow.transform.position = transform.TransformPoint(arrowOffsets);
+                _currentArrowScript = arrow.GetComponent<Arrow>();
                 return;
             }
         }
         
         Debug.LogWarning("No available arrows in the pool.");
+    }
+
+    private void ShootArrow()
+    {
+        if (_currentArrowScript != null)
+        {
+            Vector3 direction = transform.forward;
+            _currentArrowScript.Shoot(direction, arrowForce);
+            _currentArrowScript.transform.SetParent(_arrowParent.transform);
+            _currentArrowScript = null; 
+        }
     }
 
     IEnumerator FireArrow()
