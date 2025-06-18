@@ -18,15 +18,21 @@ public class GameManager : MonoBehaviour
     {
         _targerCount++;
         UiManager.Instance.UpdateProgressBar(_targerCount);
-        if (_targerCount > _targetsWinCount) _isWon = true;
+        if (_targerCount >= _targetsWinCount) {
+            _isWon = true;
+            UiManager.Instance.WonGame();
+        }
     }
 
     public void UpdatePlayerHealth ()
     {
         _playerHealth--;
         if (_playerHealth <= 3 && _playerHealth > 2) UiManager.Instance.UpdateHealthBar(1);
-        else if (_playerHealth <= 1) UiManager.Instance.UpdateHealthBar(0);
-        if (_playerHealth <= 0) _isGameOver = true;
+        if (_playerHealth <= 0) {
+            UiManager.Instance.UpdateHealthBar(0);
+            _isGameOver = true;
+            UiManager.Instance.LoseGame();
+        }
     }
     private void RestartGame()
     {
