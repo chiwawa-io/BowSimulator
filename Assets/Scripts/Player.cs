@@ -17,6 +17,10 @@ public class Player : MonoBehaviour
     private float mouseInputX;
     private Vector3 simulationLaunchPosition;
 
+    private bool _noArrowsLeft = false;
+
+    [SerializeField] private int _recharging = 0;
+
     void Start()
     {
         _animator = GetComponent<Animator>();
@@ -31,23 +35,33 @@ public class Player : MonoBehaviour
 
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Mouse1) && _currentArrowScript == null)
+        if (Input.GetKeyDown(KeyCode.Mouse1) && _currentArrowScript == null && !_noArrowsLeft)
         {
             _animator.SetBool("Aiming", true);
             StartCoroutine(FireArrow());
-            Simulate();
 
         }
-        if (Input.GetKeyDown(KeyCode.Mouse0) && _currentArrowScript != null)
+        if (Input.GetKeyDown(KeyCode.Mouse0) && _currentArrowScript != null && !_noArrowsLeft)
         {
             _animator.SetBool("Aiming", false);
             ShootArrow();
         }
-
+        if (_animator.GetBool("Aiming")) Simulate();
 
         Movement();
 
         if (_currentArrowScript == null) _simulatedTr.gameObject.SetActive(false);
+        if (_noArrowsLeft)
+        {
+            if (Input.GetKeyDown(KeyCode.Space)) {
+                _recharging++;
+                if (_recharging > 3) {
+                    _noArrowsLeft = false;
+                    _recharging = 0;
+                    DeactivateAllArrows();
+                }
+            }
+        }
     }
 
     void Movement()
@@ -79,12 +93,12 @@ public class Player : MonoBehaviour
 
         if (Input.GetKey(KeyCode.A))
         {
-            transform.Translate(Vector3.left * 0.1f, Space.World);
+            if (transform.position.x > -6f) transform.Translate(Vector3.left * 0.1f, Space.World);
             if (_currentArrowScript != null) Simulate();
         }
         if (Input.GetKey(KeyCode.D))
         {
-            transform.Translate(Vector3.right * 0.1f, Space.World);
+            if (transform.position.x < 6f) transform.Translate(Vector3.right * 0.1f, Space.World);
             if(_currentArrowScript != null) Simulate();
         }
 
@@ -123,7 +137,17 @@ public class Player : MonoBehaviour
             }
         }
 
-        Debug.LogWarning("No available arrows in the pool.");
+        _noArrowsLeft = true;
+        _animator.SetBool("Aiming", false);
+    }
+
+    private void DeactivateAllArrows()
+    {
+        foreach (GameObject arrow in _arrows)
+        {
+            arrow.SetActive(false);
+            arrow.transform.SetParent(transform);
+        }
     }
 
     private void ShootArrow()

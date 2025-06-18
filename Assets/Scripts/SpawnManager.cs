@@ -5,66 +5,76 @@ using UnityEngine;
 public class SpawnManager : MonoBehaviour
 {
     [SerializeField] private GameObject _envirPrefab;
-    private List<GameObject> _envirList;
+    [SerializeField] private List<GameObject> _envirList;
+    [SerializeField] private Vector3 _spawnPos = new Vector3(0f, 0f, 180.44f);
+    [SerializeField] private float _deactivateDelay = 5f;
 
-    [SerializeField] private GameObject firstStarterEnvir;
-    [SerializeField] private GameObject secondStarterEnvir;
+    [SerializeField] private GameObject _targetPrefab;
+    private Vector3 _targetPosition;
+
+    private GameObject _currentEnvir;
 
     void Start()
     {
-        _envirList = new List<GameObject>();
-        for (int i = 0; i < 3; i++)
-        {
-            GameObject envir = Instantiate(_envirPrefab);
-            envir.transform.SetParent(transform);
-            _envirList.Add(envir);
-            envir.SetActive(false);
-        }
+        if (_envirList == null)
+            _envirList = new List<GameObject>();
 
         if (_envirPrefab == null)
             Debug.LogError("Environment prefab is not assigned in the inspector.");
+
+        foreach (GameObject env in _envirList)
+        {
+            if (env.activeInHierarchy)
+            {
+                _currentEnvir = env;
+                break;
+            }
+        }
     }
 
     public void SpawnEnvironment()
     {
-        StartCoroutine(DeactivatingRoutine());
-        GetEnvirFromPool();
+        var oldEnvir = _currentEnvir;
+
+        _currentEnvir = GetEnvirFromPool();
+        _currentEnvir.transform.position = _spawnPos;
+        _currentEnvir.SetActive(true);
+
+        if (oldEnvir != null)
+        {
+            StartCoroutine(DeactivatingRoutine(oldEnvir));
+        }
     }
 
-    private void GetEnvirFromPool()
+    public void SpawnTarget()
     {
-        foreach (GameObject envir in _envirList)
+        if (_targetPrefab == null)
         {
-            if (!envir.activeInHierarchy)
-            {
-                envir.SetActive(true);
-                envir.transform.position = new Vector3(-4.95f, -2.98f, 181.54f);
-                return;
-            }
+            Debug.LogError("Target prefab is not assigned in the inspector.");
+            return;
         }
-        // If no inactive environment is found, instantiate a new one
-        GameObject newEnvir = Instantiate(_envirPrefab);
-        _envirList.Add(newEnvir);
-        newEnvir.SetActive(true);
+
+        _targetPosition = new Vector3(Random.Range(-6f, 6f), Random.Range(1f, 3f), Random.Range(35f, 40f));
+        GameObject target = Instantiate(_targetPrefab, _targetPosition, Quaternion.identity);
+        target.transform.SetParent(transform);
     }
 
-    IEnumerator DeactivatingRoutine()
+    private GameObject GetEnvirFromPool()
     {
-        yield return new WaitForSeconds(5f);
-        if (firstStarterEnvir.activeSelf)
-            firstStarterEnvir.SetActive(false);
-        else if (secondStarterEnvir.activeSelf)
-            secondStarterEnvir.SetActive(false);
-        else
+        foreach (GameObject env in _envirList)
         {
-            foreach (GameObject envir in _envirList)
+            if (!env.activeInHierarchy)
             {
-                if (envir.activeSelf)
-                {
-                    envir.SetActive(false);
-                    break;
-                }
+                return env;
             }
         }
+
+        return null;
+    }
+
+    IEnumerator DeactivatingRoutine(GameObject oldEnv)
+    {
+        yield return new WaitForSeconds(_deactivateDelay);
+        if (oldEnv != null) oldEnv.SetActive(false);
     }
 }

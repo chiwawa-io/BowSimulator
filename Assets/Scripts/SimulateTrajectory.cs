@@ -1,27 +1,48 @@
 using UnityEngine;
-using UnityEngine.SceneManagement;
-using UnityEngine.UIElements;
+using System.Collections;
+using System.Collections.Generic;
 
 public class SimulateTrajectory : MonoBehaviour
 {
     [SerializeField] private LineRenderer _lineRenderer;
+    [SerializeField] private int _maxPoints = 20;
+    [SerializeField] private float _timeStep = 0.1f;
+    [SerializeField] private LayerMask _collisionLayerMask;
 
     private void Start()
     {
-        if (_lineRenderer == null)
+        if (_lineRenderer == null) 
+        {
+            _lineRenderer = GetComponent<LineRenderer>();
             Debug.LogError("LineRenderer is not assigned in the inspector.");
+        }
     }
 
     public void SimulateTr(Vector3 direction, Vector3 origin)
     {
-        _lineRenderer.positionCount = 20;
+        List<Vector3> points = new List<Vector3>();
+        var currentPosition = origin;
 
-        for (int i = 0; i < 20; i++)
+        points.Add(currentPosition);
+
+        for (int i = 0; i < _maxPoints; i++)
         {
-            float time = i * 0.1f; // Adjust time step as needed
-            Vector3 position = origin + direction * time + Physics.gravity * time * time / 2f;
-            _lineRenderer.SetPosition(i, position);
+            _timeStep = i * 0.1f; 
+            var position = origin + direction * _timeStep + Physics.gravity * _timeStep * _timeStep / 2f;
+            points.Add(position);
+
+            var directionToNext = position - currentPosition;
+            var distanceToNext = directionToNext.magnitude;
+
+            if (Physics.Raycast(currentPosition, directionToNext.normalized, out RaycastHit hit, distanceToNext, _collisionLayerMask))
+            {
+                points[i] = hit.point;
+                break;
+            }
         }
+
+        _lineRenderer.positionCount = points.Count;
+        _lineRenderer.SetPositions(points.ToArray());
     }
 }
 

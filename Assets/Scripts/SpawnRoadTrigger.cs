@@ -14,11 +14,10 @@ public class SpawnRoadTrigger : MonoBehaviour
         }
     }
 
-    private void OnCollisionEnter(Collision collision)
+    void OnTriggerEnter(Collider other)
     {
-        if (collision.gameObject.CompareTag("Player"))
+        if (other.CompareTag("Player"))
         {
-            Debug.Log("Player collided with SpawnRoadTrigger.");
             spawnManager.SpawnEnvironment();
         }
     }

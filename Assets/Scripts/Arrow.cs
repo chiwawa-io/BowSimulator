@@ -38,8 +38,7 @@ public class Arrow : MonoBehaviour
 
     private void OnCollisionEnter(Collision collision)
     {
-            _rigidbody.isKinematic = true; 
-            Wait3SEconds();
+        Wait3SEconds();
     }
 
     IEnumerator Wait3SEconds()

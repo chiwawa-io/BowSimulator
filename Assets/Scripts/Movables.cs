@@ -12,10 +12,5 @@ public class Movables : MonoBehaviour
             transform.Translate(-Vector3.forward * Time.deltaTime * 20f);
             transform.Translate(-Vector3.right * Time.deltaTime * 1.5f);
         }
-
-        if (transform.position.z < -87f && id == 0)
-        {
-            Destroy(gameObject, 10f);
-        }
     }
 }
