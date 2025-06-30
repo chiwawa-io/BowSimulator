@@ -1,47 +1,50 @@
+using System;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 public class TargetScript : MonoBehaviour
 {
-    private SpawnManager _spawnManager;
-    private GameManager _gameManager;
-    [SerializeField] private Rigidbody _rigidbody;
-    [SerializeField] private Animator _animator;
-    [SerializeField] private Collider _collider;
-    void Start()
+    [SerializeField] private Rigidbody targetRigidbody;
+    [SerializeField] private Animator targetAnimator;
+    [SerializeField] private Collider targetCollider;
+    [SerializeField] private AudioSource audioSource;
+    [SerializeField] private GameObject particles;
+
+    public static Action OnTargetHit;
+    private void OnEnable()
     {
-        _spawnManager = GameObject.FindGameObjectWithTag("SpawnManager").GetComponent<SpawnManager>();
-        _gameManager = GameObject.FindGameObjectWithTag("GameManager").GetComponent<GameManager>();
-
-        if (_spawnManager == null)
-            Debug.LogError("SpawnManager component not found on the TargetScript GameObject.");
-        if (_gameManager == null)
-            Debug.LogError("GameManager component not found on the TargetScript GameObject.");
+        particles.SetActive(false);
+        particles.transform.position = transform.position;
     }
-
+    
     private void OnCollisionEnter(Collision collision)
     {
         if (collision.gameObject.CompareTag("Arrow"))
         {
-            _spawnManager.SpawnTarget();
-            _gameManager.UpdateTargetCount();
+            OnTargetHit?.Invoke();
             Boom(collision);
         }
     }
     void Boom (Collision collision)
     {
-        _animator.enabled = false;
-        _rigidbody.isKinematic = false;
-        _rigidbody.useGravity = true;
-        _collider.enabled = false;
-
+        targetAnimator.enabled = false;
+        targetRigidbody.isKinematic = false;
+        targetRigidbody.useGravity = true;
+        targetCollider.enabled = false;
+        
+        audioSource.Play();
+        
         var impactPoint = collision.contacts[0].point;
         var forceDirection = collision.transform.forward;
 
-        _rigidbody.AddForceAtPosition(forceDirection * 5f, impactPoint, ForceMode.Impulse);
+        particles.SetActive(true);
+        particles.transform.position = impactPoint;
+        
+        targetRigidbody.AddForceAtPosition(forceDirection * 5f, impactPoint, ForceMode.Impulse);
 
         var randomTorque = new Vector3(Random.Range(-1f, 1f), Random.Range(0, 1f), Random.Range(-1f, 1f));
 
-        _rigidbody.AddTorque(randomTorque, ForceMode.Impulse);
+        targetRigidbody.AddTorque(randomTorque, ForceMode.Impulse);
 
         Destroy(gameObject, 3f);
     }

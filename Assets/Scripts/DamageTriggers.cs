@@ -1,19 +1,15 @@
+using System;
 using UnityEngine;
 
 public class DamageTriggers : MonoBehaviour
 {
-    private GameManager _gameManager;
-    [SerializeField] private Rigidbody _rigidbody;
-    void Start()
-    {
-        _gameManager = GameObject.FindGameObjectWithTag("GameManager").GetComponent<GameManager>();
-
-        if (_gameManager == null) Debug.Log("GameManager on DamageTrigger is not assigned"); 
-    }
+    [SerializeField] private Rigidbody targetRigidbody;
+    
+    public static Action onPlayerHit;
 
     private void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("Player")) _gameManager.UpdatePlayerHealth();
+        if (other.CompareTag("Player")) onPlayerHit?.Invoke();
     }
 
     private void OnCollisionEnter(Collision collision)
@@ -23,16 +19,16 @@ public class DamageTriggers : MonoBehaviour
     }
 
     private void Boom(Collision collision) {
-        _rigidbody.isKinematic = false;
+        targetRigidbody.isKinematic = false;
 
         var impactPoint = collision.contacts[0].point;
         var forceDirection = collision.transform.forward;
 
-        _rigidbody.AddForceAtPosition(forceDirection * 5f, impactPoint, ForceMode.Impulse);
+        targetRigidbody.AddForceAtPosition(forceDirection * 5f, impactPoint, ForceMode.Impulse);
 
-        var randomTorque = new Vector3(Random.Range(-1f, 1f), Random.Range(0, 1f), Random.Range(-1f, 1f));
+        var randomTorque = new Vector3(UnityEngine.Random.Range(-1f, 1f), UnityEngine.Random.Range(0, 1f), UnityEngine.Random.Range(-1f, 1f));
 
-        _rigidbody.AddTorque(randomTorque, ForceMode.Impulse);
+        targetRigidbody.AddTorque(randomTorque, ForceMode.Impulse);
 
         Destroy(gameObject, 3f);
     }

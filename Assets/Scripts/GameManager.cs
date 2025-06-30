@@ -1,34 +1,48 @@
+using System;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
-    [SerializeField] private int _playerHealth = 0;
-    [SerializeField] private int _targerCount = 0;
-    [SerializeField] private int _targetsWinCount = 0;
+    [SerializeField] private int playerHealth;
+    [SerializeField] private int targetCount;
 
-    private bool _isWon = false;
-    private bool _isGameOver = false;
+
+    private bool _isWon;
+    private bool _isGameOver;
+    
+    public static Action onLowHealth;
+    private void OnEnable()
+    {
+        TargetScript.OnTargetHit += UpdateTargetCount;
+        DamageTriggers.onPlayerHit += UpdatePlayerHealth;
+    }
+    private void OnDisable()
+    {
+        TargetScript.OnTargetHit -= UpdateTargetCount;
+        DamageTriggers.onPlayerHit -= UpdatePlayerHealth;
+    }
     void Update()
     {
         if (_isWon || _isGameOver) RestartGame();
     }
 
-    public void UpdateTargetCount ()
+    private void UpdateTargetCount ()
     {
-        _targerCount++;
-        UiManager.Instance.UpdateProgressBar(_targerCount);
-        if (_targerCount >= _targetsWinCount) {
-            _isWon = true;
-            UiManager.Instance.WonGame();
-        }
+        targetCount++;
     }
 
-    public void UpdatePlayerHealth ()
+    private void UpdatePlayerHealth ()
     {
-        _playerHealth--;
-        if (_playerHealth <= 3 && _playerHealth > 2) UiManager.Instance.UpdateHealthBar(1);
-        if (_playerHealth <= 0) {
+        playerHealth--;
+        if (playerHealth <= 3 && playerHealth > 2)
+        {
+            UiManager.Instance.UpdateHealthBar(1);
+            onLowHealth?.Invoke();
+        }
+
+        if (playerHealth <= 0) {
             UiManager.Instance.UpdateHealthBar(0);
             _isGameOver = true;
             UiManager.Instance.LoseGame();
@@ -39,4 +53,6 @@ public class GameManager : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.R))
             SceneManager.LoadScene(0); 
     }
+
+    
 }

@@ -6,28 +6,46 @@ public class Player : MonoBehaviour
 {
     private Animator _animator;
 
-    [SerializeField] private SimulateTrajectory _simulatedTr;
-    [SerializeField] private GameObject _arrowPrefab;
-    [SerializeField] private GameObject _arrowParent;
-    [SerializeField] private Vector3 arrowOffsets = new Vector3(0, 0, 0f);
+    [SerializeField] private GameObject onLowHealthVolume;
+    [SerializeField] private AudioClip lowHealthClip;
+    [SerializeField] private AudioClip normalStateClip;
+    [SerializeField] private AudioSource audioSource;
+    
+    [SerializeField] private SimulateTrajectory simulatedTr;
+    [SerializeField] private GameObject arrowPrefab;
+    [SerializeField] private GameObject arrowParent;
+    [SerializeField] private Vector3 arrowOffsets;
     [SerializeField] private float arrowForce;
-    private List<GameObject> _arrows;
+    private List<Arrow> _arrows;
     private Arrow _currentArrowScript;
+    private bool _isHoldingArrow;
 
-    private float mouseInputX;
-    private Vector3 simulationLaunchPosition;
+    private float _mouseInputX;
+    private Vector3 _simulationLaunchPosition;
 
-    private bool _noArrowsLeft = false;
+    private bool _noArrowsLeft;
+    private int _recharging;
+    
+    private string _animatorAiming = "Aiming";
 
-    [SerializeField] private int _recharging = 0;
+    private void OnEnable()
+    {
+        GameManager.onLowHealth += OnLowHealth;
+    }
+
+    private void OnDisable()
+    {
+        GameManager.onLowHealth -= OnLowHealth;
+    }
 
     void Start()
     {
         _animator = GetComponent<Animator>();
+        onLowHealthVolume?.SetActive(false);
 
         InitPoolOfArrows();
 
-        if (_arrowPrefab == null)
+        if (arrowPrefab == null)
             Debug.LogError("Arrow prefab is not assigned in the inspector.");
         if (_animator == null)
             Debug.LogError("Animator component is not assigned in the inspector.");
@@ -35,44 +53,37 @@ public class Player : MonoBehaviour
 
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Mouse1) && _currentArrowScript == null && !_noArrowsLeft)
-        {
-            _animator.SetBool("Aiming", true);
-            StartCoroutine(FireArrow());
-
-        }
-        if (Input.GetKeyDown(KeyCode.Mouse0) && _currentArrowScript != null && !_noArrowsLeft)
-        {
-            _animator.SetBool("Aiming", false);
-            ShootArrow();
-        }
-        if (_animator.GetBool("Aiming")) Simulate();
-
         Movement();
+        
+        if (Input.GetKeyDown(KeyCode.Mouse1) && !_isHoldingArrow && !_noArrowsLeft)
+        {
+            Aiming();
 
-        if (_currentArrowScript == null) _simulatedTr.gameObject.SetActive(false);
+        }
+        if (Input.GetKeyDown(KeyCode.Mouse0) && _isHoldingArrow && !_noArrowsLeft)
+        {
+            Shoot();
+        }
+        
+        if (_isHoldingArrow) Simulate();
+        else if (!_isHoldingArrow) simulatedTr.gameObject.SetActive(false);
+
+
         if (_noArrowsLeft)
         {
-            if (Input.GetKeyDown(KeyCode.Space)) {
-                _recharging++;
-                if (_recharging > 3) {
-                    _noArrowsLeft = false;
-                    _recharging = 0;
-                    DeactivateAllArrows();
-                }
-            }
+            ReloadArrows();
         }
     }
 
     void Movement()
     {
-        mouseInputX = Input.GetAxis("Mouse X");
-        if (mouseInputX != 0)
+        _mouseInputX = Input.GetAxis("Mouse X");
+        if (_mouseInputX != 0)
         {
             Vector3 rotationX = transform.rotation.eulerAngles;
-            rotationX.y += mouseInputX * 2f;
+            rotationX.y += _mouseInputX * 2f;
             transform.rotation = Quaternion.Euler(rotationX);
-            if (_currentArrowScript != null) Simulate();
+            if (_isHoldingArrow) Simulate();
 
         }
 
@@ -81,86 +92,118 @@ public class Player : MonoBehaviour
             Vector3 rotationY = transform.rotation.eulerAngles;
             rotationY.x -= 0.2f;
             transform.rotation = Quaternion.Euler(rotationY);
-            if (_currentArrowScript != null) Simulate();
+            if (_isHoldingArrow) Simulate();
         }
         if (Input.GetKey(KeyCode.S))
         {
             Vector3 rotationY = transform.rotation.eulerAngles;
             rotationY.x += 0.2f;
             transform.rotation = Quaternion.Euler(rotationY);
-            if (_currentArrowScript != null) Simulate();
+            if (_isHoldingArrow) Simulate();
         }
 
         if (Input.GetKey(KeyCode.A))
         {
             if (transform.position.x > -6f) transform.Translate(Vector3.left * 0.1f, Space.World);
-            if (_currentArrowScript != null) Simulate();
+            if (_isHoldingArrow) Simulate();
         }
         if (Input.GetKey(KeyCode.D))
         {
             if (transform.position.x < 6f) transform.Translate(Vector3.right * 0.1f, Space.World);
-            if(_currentArrowScript != null) Simulate();
+            if(_isHoldingArrow) Simulate();
         }
 
+    }
+    void Aiming()
+    {
+        _animator.SetBool(_animatorAiming, true);
+        StartCoroutine(FireArrow());
+    }
+
+    void Shoot()
+    {
+        _animator.SetBool(_animatorAiming, false);
+        ShootArrow();
+    }
+
+    void ReloadArrows()
+    {
+        if (Input.GetKeyDown(KeyCode.Space)) {
+            _recharging++;
+            if (_recharging > 3) {
+                _noArrowsLeft = false;
+                _recharging = 0;
+                DeactivateAllArrows();
+            }
+        }
     }
 
     void Simulate()
     {
-        simulationLaunchPosition = transform.TransformPoint(arrowOffsets);
-        _simulatedTr.gameObject.SetActive(true);
-        _simulatedTr.SimulateTr(transform.forward * arrowForce, simulationLaunchPosition);
+        _simulationLaunchPosition = transform.TransformPoint(arrowOffsets);
+        simulatedTr.gameObject.SetActive(true);
+        simulatedTr.SimulateTr(transform.forward * arrowForce, _simulationLaunchPosition);
     }
 
     void InitPoolOfArrows()
     {
-        _arrows = new List<GameObject>();
+        _arrows = new List<Arrow>();
 
         for (int i = 0; i < 10; i++)
         {
-            GameObject arrow = Instantiate(_arrowPrefab, transform.position, Quaternion.identity);
+            var arrow = Instantiate(arrowPrefab, transform.position, Quaternion.identity);
             arrow.transform.SetParent(transform);
             arrow.SetActive(false);
-            _arrows.Add(arrow);
+            var arrowScript = arrow.GetComponent<Arrow>();
+            _arrows.Add(arrowScript);
         }
     }
 
     private void GetArrowFromPool()
     {
-        foreach (GameObject arrow in _arrows)
+        foreach (var arrow in _arrows)
         {
-            if (!arrow.activeInHierarchy)
+            if (!arrow.gameObject.activeInHierarchy)
             {
-                arrow.SetActive(true);
+                arrow.gameObject.SetActive(true);
                 arrow.transform.position = transform.TransformPoint(arrowOffsets);
-                _currentArrowScript = arrow.GetComponent<Arrow>();
+                _currentArrowScript = arrow;
+                _isHoldingArrow = true;
                 return;
             }
         }
 
         _noArrowsLeft = true;
-        _animator.SetBool("Aiming", false);
+        _animator.SetBool(_animatorAiming, false);
     }
 
     private void DeactivateAllArrows()
     {
-        foreach (GameObject arrow in _arrows)
+        foreach (var arrow in _arrows)
         {
-            arrow.SetActive(false);
+            arrow.gameObject.SetActive(false);
             arrow.transform.SetParent(transform);
         }
     }
 
     private void ShootArrow()
     {
-        if (_currentArrowScript != null)
+        if (_isHoldingArrow)
         {
             Vector3 direction = transform.forward;
             _currentArrowScript.Shoot(direction, arrowForce);
-            _currentArrowScript.transform.SetParent(_arrowParent.transform);
+            _currentArrowScript.transform.SetParent(arrowParent.transform);
             _currentArrowScript = null;
+            _isHoldingArrow = false;
         }
     }
 
+    private void OnLowHealth()
+    {
+        onLowHealthVolume?.SetActive(true);    
+        audioSource.clip = lowHealthClip;
+        audioSource.Play();
+    }
     IEnumerator FireArrow()
     {
         yield return new WaitForSeconds(0.2f);
