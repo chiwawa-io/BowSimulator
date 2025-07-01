@@ -9,11 +9,15 @@ public class UiManager : MonoBehaviour
 
     [SerializeField] private Image healthBar;
     [SerializeField] private Image progressBar;
-    [SerializeField] private GameObject wolfImage;
-    [SerializeField] private GameObject wolfText;
-    [SerializeField] private GameObject wonText;
+    [SerializeField] private TextMeshProUGUI scoreNumber;
+    [SerializeField] private GameObject pauseMenu;
+    
+    [SerializeField] private GameObject scoreText;
     [SerializeField] private GameObject tryAgainText;
     [SerializeField] private TextMeshProUGUI comboText;
+    [SerializeField] private GameObject reloadButton;
+    [SerializeField] private GameObject greenOrbButton;
+    [SerializeField] private GameObject greenOrbOverlay;
 
     [SerializeField] private Sprite[] healthSprites;
     [SerializeField] private Sprite[] progressSprites;
@@ -29,6 +33,12 @@ public class UiManager : MonoBehaviour
     [SerializeField] private Image itemSprite;
     [SerializeField] private GameObject items;
     [SerializeField] private GameObject buyMenuPopUp;
+
+    [SerializeField] private GameObject mainMenu;
+    [SerializeField] private GameObject playerProfile;
+    [SerializeField] private TextMeshProUGUI playerName;
+    [SerializeField] private TextMeshProUGUI playerLevelInMainMenu;
+    [SerializeField] private TextMeshProUGUI playerLevelInProfile;
     
     private int _comboCounter;
 
@@ -36,13 +46,26 @@ public class UiManager : MonoBehaviour
     {
         TargetScript.OnTargetHit += UpdateProgressBar;
         Store.onPressItem += ShowStorePopup;
+        Store.onBoughtItem += UpdateLightOrbs;
+        Player.onOutOfArrows += OnOutOfArrows;
+        GameManager.showHideOrbUi += OnLowHealth;
+        GameManager.onPause += OnPause;
         
-        if (balance != null) balance.text = $"{GameManager.lightOrbs}"; 
+        if (balance != null) balance.text = $"{GameManager.LightOrbs}";
+        if (playerProfile != null)
+        {
+         playerLevelInMainMenu.text = $"{GameManager.Level}";   
+         playerLevelInProfile.text = $"{GameManager.Level}";   
+        }
     }
     private void OnDisable()
     {
         TargetScript.OnTargetHit -= UpdateProgressBar;
         Store.onPressItem -= ShowStorePopup;
+        Store.onBoughtItem -= UpdateLightOrbs;
+        Player.onOutOfArrows -= OnOutOfArrows;
+        GameManager.showHideOrbUi -= OnLowHealth;
+        GameManager.onPause -= OnPause;
     }
 
     void Start()
@@ -54,6 +77,13 @@ public class UiManager : MonoBehaviour
         
         if (progressBar == null) Debug.Log("progressBar is null");
         else progressBar.sprite = progressSprites[0];
+
+        if (GameManager.HasGreenOrb && greenOrbOverlay != null) 
+        {
+            greenOrbOverlay.SetActive(true);
+            greenOrbButton.SetActive(false);
+        }
+
     }
 
     public void UpdateHealthBar(int health) {
@@ -104,25 +134,82 @@ public class UiManager : MonoBehaviour
         items.SetActive(true);
     }
 
-    public void WonGame()
+    void OnOutOfArrows(int id)
     {
-        wonText.SetActive(true);
-        tryAgainText.SetActive(true);
-        healthBar.gameObject.SetActive(false);
-        progressBar.gameObject.SetActive(false);
-        comboText.gameObject.SetActive(false);
+        switch (id)
+        {
+            case 0:
+                reloadButton.SetActive(true);
+                break;
+            case 1:
+                reloadButton.SetActive(false);
+                break;
+            default:
+                break;
+        }
+
     }
 
-    public void LoseGame()
+    void OnLowHealth(int id)
     {
-        wolfText.SetActive(true);
-        wolfImage.SetActive(true);
+        switch (id)
+        {
+            case 0:
+                greenOrbButton.SetActive(true);
+                break;
+            case 1:
+                greenOrbButton.SetActive(false);
+                greenOrbOverlay.SetActive(false);
+                break;
+            default:
+                break;
+        }
+
+    }
+
+    void OnPause(bool paused)
+    {
+        if (pauseMenu != null){
+            if (paused) pauseMenu.SetActive(true);
+            else pauseMenu.SetActive(false);
+        }
+    }
+
+    public void LoseGame(int score)
+    {
+        scoreText.SetActive(true);
+        scoreNumber.gameObject.SetActive(true);
+        scoreNumber.text = score.ToString();
         tryAgainText.SetActive(true);
-        healthBar.gameObject.SetActive(false);
         progressBar.gameObject.SetActive(false);
         comboText.gameObject.SetActive(false);
+        Debug.Log(score);
     }
-    
+
+    public void OpenClosePlayerProfile(int id)
+    {
+        switch (id)
+        {
+            case 1:
+                mainMenu.SetActive(false);
+                playerProfile.SetActive(true);
+                break;
+            case 2:
+                mainMenu.SetActive(true);
+                playerProfile.SetActive(false);
+                break;
+            default:
+                mainMenu.SetActive(true);
+                playerProfile.SetActive(false);
+                break;
+        }
+    }
+
+    void UpdateLightOrbs(int a, int b)
+    {
+        if (balance != null) balance.text = $"{GameManager.LightOrbs}";
+    }
+
     IEnumerator ComboCooldownRoutine(float waitTime)
     {
         _comboCounter++;

@@ -32,7 +32,7 @@ public class Movables : MonoBehaviour
         return nextRoadSpawn;
     }
 
-    void MonsterGrowling()
+    void MonsterGrowling(int i)
     {
         if (id == 1) audioSource.Play();
     }

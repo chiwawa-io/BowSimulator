@@ -1,13 +1,14 @@
 using System.Collections;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 public class Player : MonoBehaviour
 {
     private Animator _animator;
 
     [SerializeField] private GameObject onLowHealthVolume;
+    [SerializeField] private GameObject onRechargingVolume;
     [SerializeField] private AudioClip lowHealthClip;
     [SerializeField] private AudioClip normalStateClip;
     [SerializeField] private AudioSource audioSource;
@@ -30,18 +31,26 @@ public class Player : MonoBehaviour
     private bool _noArrowsLeft;
     private bool _shootPressed;
     private bool _aimPressed;
+    private bool _isPaused;
     private int _recharging;
     
     private string _animatorAiming = "Aiming";
 
+    public static Action<int> onOutOfArrows;
+    
+    private WaitForSeconds _waitForSeconds = new WaitForSeconds(0.2f);
     private void OnEnable()
     {
         GameManager.onLowHealth += OnLowHealth;
+        GameManager.onPause += OnPause;
+        GameManager.onGameOver += OnGameOver;
     }
 
     private void OnDisable()
     {
         GameManager.onLowHealth -= OnLowHealth;
+        GameManager.onPause -= OnPause;
+        GameManager.onGameOver -= OnGameOver;
     }
 
     void Start()
@@ -59,28 +68,31 @@ public class Player : MonoBehaviour
 
     void Update()
     {
-        Movement();
-
-        _aimPressed = InputManager.InputActions.Player.Aim.WasPressedThisFrame();
-        if (_aimPressed && !_isHoldingArrow && !_noArrowsLeft)
+        if (!_isPaused)
         {
-            Aiming();
+            Movement();
 
-        }
+            _aimPressed = InputManager.InputActions.Player.Aim.WasPressedThisFrame();
+            if (_aimPressed && !_isHoldingArrow && !_noArrowsLeft)
+            {
+                Aiming();
 
-        _shootPressed = InputManager.InputActions.Player.Shoot.WasPressedThisFrame();
-        if (_shootPressed && _isHoldingArrow && !_noArrowsLeft)
-        {
-            Shoot();
-        }
-        
-        if (_isHoldingArrow) Simulate();
-        else if (!_isHoldingArrow) simulatedTr.gameObject.SetActive(false);
+            }
+
+            _shootPressed = InputManager.InputActions.Player.Shoot.WasPressedThisFrame();
+            if (_shootPressed && _isHoldingArrow && !_noArrowsLeft)
+            {
+                Shoot();
+            }
+
+            if (_isHoldingArrow) Simulate();
+            else if (!_isHoldingArrow) simulatedTr.gameObject.SetActive(false);
 
 
-        if (_noArrowsLeft)
-        {
-            ReloadArrows();
+            if (_noArrowsLeft)
+            {
+                ReloadArrows();
+            }
         }
     }
 
@@ -128,7 +140,7 @@ public class Player : MonoBehaviour
     void Aiming()
     {
         _animator.SetBool(_animatorAiming, true);
-        StartCoroutine(FireArrow());
+        StartCoroutine(WaitTimeRoutine(1));
     }
 
     void Shoot()
@@ -139,12 +151,18 @@ public class Player : MonoBehaviour
 
     void ReloadArrows()
     {
+        onOutOfArrows?.Invoke(0);
+        onRechargingVolume.SetActive(true);
+        audioSource.pitch = Time.timeScale;
         if (InputManager.InputActions.Player.Reload.WasPressedThisFrame()) {
             _recharging++;
             if (_recharging > 3) {
                 _noArrowsLeft = false;
                 _recharging = 0;
+                onOutOfArrows?.Invoke(1);
+                onRechargingVolume.SetActive(false);
                 DeactivateAllArrows();
+                StartCoroutine(WaitTimeRoutine(2));
             }
         }
     }
@@ -209,16 +227,42 @@ public class Player : MonoBehaviour
         }
     }
 
-    private void OnLowHealth()
+    private void OnLowHealth(int id)
     {
-        onLowHealthVolume?.SetActive(true);    
-        audioSource.clip = lowHealthClip;
-        audioSource.Play();
+        switch (id)
+        {
+            case 0:
+                onLowHealthVolume?.SetActive(true);    
+                audioSource.clip = lowHealthClip;
+                audioSource.Play();
+                break;
+            case 1:
+                onLowHealthVolume?.SetActive(false);
+                audioSource.clip = normalStateClip;
+                audioSource.Play();
+                break;
+            default:
+                break;
+        }
     }
-    IEnumerator FireArrow()
+
+    private void OnPause(bool pause)
     {
-        yield return new WaitForSeconds(0.2f);
-        GetArrowFromPool();
+        _isPaused = pause;
+        if (pause) audioSource.Pause();
+        else audioSource.Play();
+    }
+
+    private void OnGameOver()
+    {
+        OnPause(true);
+    }
+
+    IEnumerator WaitTimeRoutine(int id)
+    {
+        yield return _waitForSeconds;
+        if (id ==1 ) GetArrowFromPool();
+        else audioSource.pitch = Time.timeScale;
     }
 
 }
