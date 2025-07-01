@@ -260,6 +260,50 @@ Transform:
   m_Children: []
   m_Father: {fileID: 442689209}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &213420991
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 213420992}
+  - component: {fileID: 213420993}
+  m_Layer: 0
+  m_Name: InputManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &213420992
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 213420991}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1547320276}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &213420993
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 213420991}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 77d4481149a28a84996960ad146b80b1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1001 &214654846
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -6907,7 +6951,6 @@ GameObject:
   m_Component:
   - component: {fileID: 1547320276}
   - component: {fileID: 1547320277}
-  - component: {fileID: 1547320278}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: GameManager
@@ -6927,7 +6970,8 @@ Transform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 213420992}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1547320277
@@ -6944,18 +6988,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   playerHealth: 6
   targetCount: 0
---- !u!114 &1547320278
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1547320275}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 055bba73ef30c3d41aae315fb1b8f0c6, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!1001 &1572166501
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -7247,6 +7279,13 @@ MonoBehaviour:
   smallComboCooldown: 1.1
   mediumComboCooldown: 0.9
   highComboCooldown: 0.7
+  balance: {fileID: 0}
+  itemName: {fileID: 0}
+  itemDescription: {fileID: 0}
+  itemPrice: {fileID: 0}
+  itemSprite: {fileID: 0}
+  items: {fileID: 0}
+  buyMenuPopUp: {fileID: 0}
 --- !u!4 &1745106587
 Transform:
   m_ObjectHideFlags: 0
@@ -7574,6 +7613,11 @@ PrefabInstance:
       propertyPath: simulatedTr
       value: 
       objectReference: {fileID: 1052054924}
+    - target: {fileID: 4152894310180745239, guid: 59bb55e090d10034bb81b9b994206f2e,
+        type: 3}
+      propertyPath: mouseSensitivity
+      value: 0.5
+      objectReference: {fileID: 0}
     - target: {fileID: 5017751762901020607, guid: 59bb55e090d10034bb81b9b994206f2e,
         type: 3}
       propertyPath: m_LocalPosition.x

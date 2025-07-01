@@ -22,15 +22,27 @@ public class UiManager : MonoBehaviour
     [SerializeField] private float mediumComboCooldown;
     [SerializeField] private float highComboCooldown;
     
+    [SerializeField] private TextMeshProUGUI balance;
+    [SerializeField] private TextMeshProUGUI itemName;
+    [SerializeField] private TextMeshProUGUI itemDescription;
+    [SerializeField] private TextMeshProUGUI itemPrice;
+    [SerializeField] private Image itemSprite;
+    [SerializeField] private GameObject items;
+    [SerializeField] private GameObject buyMenuPopUp;
+    
     private int _comboCounter;
 
     private void OnEnable()
     {
         TargetScript.OnTargetHit += UpdateProgressBar;
+        Store.onPressItem += ShowStorePopup;
+        
+        if (balance != null) balance.text = $"{GameManager.lightOrbs}"; 
     }
     private void OnDisable()
     {
         TargetScript.OnTargetHit -= UpdateProgressBar;
+        Store.onPressItem -= ShowStorePopup;
     }
 
     void Start()
@@ -75,12 +87,30 @@ public class UiManager : MonoBehaviour
         }
     }
 
+    private void ShowStorePopup(string Name, string description, int price, Sprite sprite)
+    {
+        items.SetActive(false);
+        buyMenuPopUp.SetActive(true);
+        
+        itemSprite.sprite = sprite;
+        itemName.text = Name;
+        itemDescription.text = description;
+        itemPrice.text = $"{price} light orbs";
+    }
+
+    public void ExitPopUp()
+    {
+        buyMenuPopUp.SetActive(false);
+        items.SetActive(true);
+    }
+
     public void WonGame()
     {
         wonText.SetActive(true);
         tryAgainText.SetActive(true);
         healthBar.gameObject.SetActive(false);
         progressBar.gameObject.SetActive(false);
+        comboText.gameObject.SetActive(false);
     }
 
     public void LoseGame()
@@ -90,6 +120,7 @@ public class UiManager : MonoBehaviour
         tryAgainText.SetActive(true);
         healthBar.gameObject.SetActive(false);
         progressBar.gameObject.SetActive(false);
+        comboText.gameObject.SetActive(false);
     }
     
     IEnumerator ComboCooldownRoutine(float waitTime)

@@ -1,14 +1,13 @@
 using System;
-using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
+    public static int lightOrbs;
+    
     [SerializeField] private int playerHealth;
     [SerializeField] private int targetCount;
-
-
     private bool _isWon;
     private bool _isGameOver;
     
@@ -25,12 +24,17 @@ public class GameManager : MonoBehaviour
     }
     void Update()
     {
-        if (_isWon || _isGameOver) RestartGame();
+        if (_isWon || _isGameOver)
+        {
+            RestartGame();
+        }
+
     }
 
     private void UpdateTargetCount ()
     {
         targetCount++;
+        lightOrbs ++;
     }
 
     private void UpdatePlayerHealth ()
@@ -51,8 +55,41 @@ public class GameManager : MonoBehaviour
     private void RestartGame()
     {
         if (Input.GetKeyDown(KeyCode.R))
-            SceneManager.LoadScene(0); 
+        {
+            SceneManager.LoadScene(0);
+            UnlockCursor();
+        }
+
     }
 
+    public void EnterEndlessMode()
+    {
+        SceneManager.LoadScene(1);
+        LockCursor();
+    }
+
+    public void EnterTrainingMode()
+    {
+        SceneManager.LoadScene(2);
+        LockCursor();   
+    }
+
+    public void EnterStore()
+    {
+        SceneManager.LoadScene(3);
+        UnlockCursor();
+        Debug.Log("Enter Store with " + lightOrbs);
+    }
     
+    private void LockCursor()
+    {
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+    }
+
+    private void UnlockCursor()
+    {
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+    }
 }

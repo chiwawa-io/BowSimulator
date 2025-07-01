@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class Player : MonoBehaviour
 {
@@ -16,14 +17,19 @@ public class Player : MonoBehaviour
     [SerializeField] private GameObject arrowParent;
     [SerializeField] private Vector3 arrowOffsets;
     [SerializeField] private float arrowForce;
+    [SerializeField] private float mouseSensitivity;
     private List<Arrow> _arrows;
     private Arrow _currentArrowScript;
     private bool _isHoldingArrow;
 
     private float _mouseInputX;
+    private float _movementX;
+    private float _movementY;
     private Vector3 _simulationLaunchPosition;
 
     private bool _noArrowsLeft;
+    private bool _shootPressed;
+    private bool _aimPressed;
     private int _recharging;
     
     private string _animatorAiming = "Aiming";
@@ -54,13 +60,16 @@ public class Player : MonoBehaviour
     void Update()
     {
         Movement();
-        
-        if (Input.GetKeyDown(KeyCode.Mouse1) && !_isHoldingArrow && !_noArrowsLeft)
+
+        _aimPressed = InputManager.InputActions.Player.Aim.WasPressedThisFrame();
+        if (_aimPressed && !_isHoldingArrow && !_noArrowsLeft)
         {
             Aiming();
 
         }
-        if (Input.GetKeyDown(KeyCode.Mouse0) && _isHoldingArrow && !_noArrowsLeft)
+
+        _shootPressed = InputManager.InputActions.Player.Shoot.WasPressedThisFrame();
+        if (_shootPressed && _isHoldingArrow && !_noArrowsLeft)
         {
             Shoot();
         }
@@ -77,24 +86,25 @@ public class Player : MonoBehaviour
 
     void Movement()
     {
-        _mouseInputX = Input.GetAxis("Mouse X");
+        _mouseInputX = InputManager.InputActions.Player.Horizontal.ReadValue<float>();
         if (_mouseInputX != 0)
         {
             Vector3 rotationX = transform.rotation.eulerAngles;
-            rotationX.y += _mouseInputX * 2f;
+            rotationX.y += _mouseInputX * mouseSensitivity;
             transform.rotation = Quaternion.Euler(rotationX);
             if (_isHoldingArrow) Simulate();
 
         }
-
-        if (Input.GetKey(KeyCode.W))
+        
+        _movementY = InputManager.InputActions.Player.Vertical.ReadValue<float>();
+        if (_movementY > 0)
         {
             Vector3 rotationY = transform.rotation.eulerAngles;
             rotationY.x -= 0.2f;
             transform.rotation = Quaternion.Euler(rotationY);
             if (_isHoldingArrow) Simulate();
         }
-        if (Input.GetKey(KeyCode.S))
+        if (_movementY < 0)
         {
             Vector3 rotationY = transform.rotation.eulerAngles;
             rotationY.x += 0.2f;
@@ -102,12 +112,13 @@ public class Player : MonoBehaviour
             if (_isHoldingArrow) Simulate();
         }
 
-        if (Input.GetKey(KeyCode.A))
+        _movementX = InputManager.InputActions.Player.Movement.ReadValue<float>();
+        if (_movementX < 0)
         {
             if (transform.position.x > -6f) transform.Translate(Vector3.left * 0.1f, Space.World);
             if (_isHoldingArrow) Simulate();
         }
-        if (Input.GetKey(KeyCode.D))
+        if (_movementX > 0)
         {
             if (transform.position.x < 6f) transform.Translate(Vector3.right * 0.1f, Space.World);
             if(_isHoldingArrow) Simulate();
@@ -128,7 +139,7 @@ public class Player : MonoBehaviour
 
     void ReloadArrows()
     {
-        if (Input.GetKeyDown(KeyCode.Space)) {
+        if (InputManager.InputActions.Player.Reload.WasPressedThisFrame()) {
             _recharging++;
             if (_recharging > 3) {
                 _noArrowsLeft = false;
