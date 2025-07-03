@@ -10,7 +10,6 @@ public class Store : MonoBehaviour
     private int _lastSelectedItem;
 
     public static Action<string, string, int, Sprite> onPressItem;
-    public static Action<int, int> onBoughtItem;
     void Start()
     {
         InitDictionary();
@@ -42,8 +41,10 @@ public class Store : MonoBehaviour
     {
         var item = _items[_lastSelectedItem];
         var price = item.Price;
-        if (price <= GameManager.LightOrbs){
-            onBoughtItem?.Invoke(_lastSelectedItem, price);
+        if (price <= PlayerDataManager.Instance.Data.LightOrbs){
+            PlayerDataManager.Instance.OnBoughtItem(_lastSelectedItem, item.Price);
+            PlayerDataManager.Instance.SavePlayerData();
+            UiManager.Instance.UpdateLightOrbs();
         }
     }
 }

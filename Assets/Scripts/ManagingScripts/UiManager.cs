@@ -36,7 +36,8 @@ public class UiManager : MonoBehaviour
 
     [SerializeField] private GameObject mainMenu;
     [SerializeField] private GameObject playerProfile;
-    [SerializeField] private TextMeshProUGUI playerName;
+    [SerializeField] private TextMeshProUGUI playerNameInMainMenu;
+    [SerializeField] private TextMeshProUGUI playerNameInProfile;
     [SerializeField] private TextMeshProUGUI playerLevelInMainMenu;
     [SerializeField] private TextMeshProUGUI playerLevelInProfile;
     
@@ -46,23 +47,14 @@ public class UiManager : MonoBehaviour
     {
         TargetScript.OnTargetHit += UpdateProgressBar;
         Store.onPressItem += ShowStorePopup;
-        Store.onBoughtItem += UpdateLightOrbs;
         Player.onOutOfArrows += OnOutOfArrows;
         GameManager.showHideOrbUi += OnLowHealth;
         GameManager.onPause += OnPause;
-        
-        if (balance != null) balance.text = $"{GameManager.LightOrbs}";
-        if (playerProfile != null)
-        {
-         playerLevelInMainMenu.text = $"{GameManager.Level}";   
-         playerLevelInProfile.text = $"{GameManager.Level}";   
-        }
     }
     private void OnDisable()
     {
         TargetScript.OnTargetHit -= UpdateProgressBar;
         Store.onPressItem -= ShowStorePopup;
-        Store.onBoughtItem -= UpdateLightOrbs;
         Player.onOutOfArrows -= OnOutOfArrows;
         GameManager.showHideOrbUi -= OnLowHealth;
         GameManager.onPause -= OnPause;
@@ -77,13 +69,8 @@ public class UiManager : MonoBehaviour
         
         if (progressBar == null) Debug.Log("progressBar is null");
         else progressBar.sprite = progressSprites[0];
-
-        if (GameManager.HasGreenOrb && greenOrbOverlay != null) 
-        {
-            greenOrbOverlay.SetActive(true);
-            greenOrbButton.SetActive(false);
-        }
-
+        
+        DisplayPlayerData();
     }
 
     public void UpdateHealthBar(int health) {
@@ -205,9 +192,16 @@ public class UiManager : MonoBehaviour
         }
     }
 
-    void UpdateLightOrbs(int a, int b)
+    public void UpdateLightOrbs()
     {
-        if (balance != null) balance.text = $"{GameManager.LightOrbs}";
+        if (balance != null) balance.text = $"{PlayerDataManager.Instance.Data.LightOrbs}";
+    }
+
+    void UpdatePlayerName()
+    {
+        Debug.Log(PlayerDataManager.Instance.Data.Username);
+        playerNameInMainMenu.text = PlayerDataManager.Instance.Data.Username;
+        playerNameInProfile.text = PlayerDataManager.Instance.Data.Username;
     }
 
     IEnumerator ComboCooldownRoutine(float waitTime)
@@ -228,5 +222,21 @@ public class UiManager : MonoBehaviour
             }
         }
         
+    }
+
+    void DisplayPlayerData()
+    {
+        if (PlayerDataManager.Instance.Data.HasGreenOrb && greenOrbOverlay != null) 
+        {
+            greenOrbOverlay.SetActive(true);
+            greenOrbButton.SetActive(false);
+        }
+        if (balance != null) balance.text = $"{PlayerDataManager.Instance.Data.LightOrbs}";
+        if (playerProfile != null)
+        {
+            playerLevelInMainMenu.text = $"{PlayerDataManager.Instance.Data.Level}";   
+            playerLevelInProfile.text = $"{PlayerDataManager.Instance.Data.Level}";   
+            UpdatePlayerName();
+        }
     }
 }

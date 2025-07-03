@@ -1,25 +1,21 @@
 using System;
+using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
-    private static int _lightOrbs;
-    private static int _level;
-    private static int _currentXp;
-    private static float _playerMaxHp = 2f;
-    private static int _nextLevelHp = (int)_playerMaxHp;
     private static bool _hasGreenOrb;
-
-    public static int LightOrbs {get => _lightOrbs; private set => _lightOrbs = value; }
-    public static int Level {get => _level; private set => _level = value; }
-    public static bool HasGreenOrb => _hasGreenOrb;
-
-    [SerializeField] private int playerHealth = 2;
-    [SerializeField] private int targetCount;
-    private bool _isWon;
+    private int _playerHealth = 2;
+    private int _playerMaxHp;
+    private int _targetCount;
     private bool _isGameOver;
     private bool _changingTime;
+
+    [SerializeField] private GameObject errorPanel;
+    [SerializeField] private TextMeshProUGUI errorText;
+    [SerializeField] private GameObject retryLevelBeginButton;
+    [SerializeField] private GameObject retryLevelEndButton;
     
     private float _gameDuration;
     private float _targetTimeScale = 1f;
@@ -33,105 +29,86 @@ public class GameManager : MonoBehaviour
     {
         TargetScript.OnTargetHit += UpdateTargetCount;
         DamageTriggers.onPlayerHit += UpdatePlayerHealth;
-        Store.onBoughtItem += OnBoughtItem;
         Player.onOutOfArrows += ChangeTime;
         
-        playerHealth = _nextLevelHp;
+        _playerMaxHp = (int)PlayerDataManager.Instance.Data.MaxHp;
+        _playerHealth = PlayerDataManager.Instance.nextLevelHp;
+        _hasGreenOrb = PlayerDataManager.Instance.Data.HasGreenOrb;
         _gameDuration = Time.time;
         _startFixedDeltaTime = Time.fixedDeltaTime;
+        
+        FreezeTime();
+
+        NetworkManager.Instance.WebSocketCommandHandler.SendLevelBeginRequestCommand(0, OnLevelBeginSuccess, OnLevelBeginFail);
     }
     private void OnDisable()
     {
         TargetScript.OnTargetHit -= UpdateTargetCount;
         DamageTriggers.onPlayerHit -= UpdatePlayerHealth;
-        Store.onBoughtItem -= OnBoughtItem;
+        Player.onOutOfArrows -= ChangeTime; 
     }
     void Update()
     {
-        if (_isWon || _isGameOver)
-        {
-            RestartGame();
-        }
+            if (_isGameOver)
+            {
+                RestartGame();
+            }
 
-        if (InputManager.InputActions.Player.Exit.WasPressedThisFrame())
-        {
-            UnlockCursor();
-            onPause?.Invoke(true);
-            FreezeTime();
-        }
+            if (InputManager.InputActions.Player.Exit.WasPressedThisFrame())
+            {
+                UnlockCursor();
+                onPause?.Invoke(true);
+                FreezeTime();
+            }
 
-        if (_changingTime) SmoothChangeTime();
+            if (_changingTime) SmoothChangeTime();
 
-        if (InputManager.InputActions.Player.UseItem.WasPressedThisFrame() && _hasGreenOrb)
-        {
-            playerHealth++;
-            _hasGreenOrb = false;
-            showHideOrbUi?.Invoke(1);
-            onLowHealth?.Invoke(1);
-        }
+            if (InputManager.InputActions.Player.UseItem.WasPressedThisFrame() && _hasGreenOrb)
+            {
+                _playerHealth++;
+                _hasGreenOrb = false;
+                showHideOrbUi?.Invoke(1);
+                onLowHealth?.Invoke(1);
+            }
+        
 
     }
 
     private void UpdateTargetCount ()
     {
-        targetCount++;
-        _lightOrbs ++;
+        _targetCount++;
+        PlayerDataManager.Instance.IncrementLightOrbs();
     }
 
     private void UpdatePlayerHealth ()
     {
-        playerHealth--;
-        if (playerHealth <= _playerMaxHp * 0.5f)
+        _playerHealth--;
+        if (_playerHealth <= _playerMaxHp * 0.5f)
         {
             UiManager.Instance.UpdateHealthBar(1);
             onLowHealth?.Invoke(0);
             if (_hasGreenOrb) showHideOrbUi?.Invoke(0);
         }
 
-        if (playerHealth <= 0) {
+        if (_playerHealth <= 0) {
             UiManager.Instance.UpdateHealthBar(0);
             _isGameOver = true;
-            _nextLevelHp = (int)_playerMaxHp;
+            PlayerDataManager.Instance.ResetNextLevelHp();
             UiManager.Instance.LoseGame(CalculateScore());
             
+            _changingTime = false;
             UnlockCursor();
             onGameOver?.Invoke();
             FreezeTime();
         }
     }
-
-    public void OnBoughtItem(int id, int price)
-    {
-        LightOrbs -= price;
-        switch (id) 
-        {
-            case 1:
-                _currentXp++;
-                CheckCurrentLevel();
-                _nextLevelHp = (int)_playerMaxHp;
-                break;
-            case 2:
-                _nextLevelHp+=3;
-                break;
-            case 3:
-                _nextLevelHp = (int)_playerMaxHp;
-                _hasGreenOrb = true;
-                break;
-            case 4:
-                _nextLevelHp = (int)_playerMaxHp;
-                // _hasDarkBow = true;
-                break;
-            default:
-                break;
-        }
-    }
-
     public void Continue()
     {
         LockCursor();
         UnFreezeTime();
         onPause?.Invoke(false);
     }
+
 
     private void ChangeTime(int id)
     {
@@ -153,55 +130,17 @@ public class GameManager : MonoBehaviour
 
     private void RestartGame()
     {
-        if (Input.GetKeyDown(KeyCode.R))
+        if (InputManager.InputActions.Player.Reload.WasPressedThisFrame())
         {
-            SceneManager.LoadScene(0);
+            NetworkManager.Instance.WebSocketCommandHandler.SendLevelEndRequestCommand(0, CalculateScore(),  OnLevelEndSuccess, OnLevelEndFail);
             UnlockCursor();
         }
 
     }
 
-    public void EnterEndlessMode()
-    {
-        SceneManager.LoadScene(1);
-        LockCursor();
-    }
-
-    public void EnterTrainingMode()
-    {
-        SceneManager.LoadScene(2);
-        LockCursor();   
-    }
-
-    public void EnterStore()
-    {
-        SceneManager.LoadScene(3);
-        UnlockCursor();
-    }
-
-    public void ReturnToMenu()
-    {
-        SceneManager.LoadScene(0);
-    }
-
-    void CheckCurrentLevel()
-    {
-        if (_currentXp >= 10)
-        {
-            _level++;
-            _currentXp = 0;
-            IncreaseHp();
-        }
-    }
-
-    void IncreaseHp()
-    {
-        _playerMaxHp += 0.1f;
-    }
-
     int CalculateScore()
     {
-       return (int)(Time.time - _gameDuration) * targetCount;
+       return (int)(Time.time - _gameDuration) * _targetCount;
     }
 
     private void LockCursor()
@@ -215,4 +154,47 @@ public class GameManager : MonoBehaviour
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
     }
+    void OnLevelBeginSuccess()
+    {
+        Continue();   
+    }
+
+    void OnLevelBeginFail(int code, string message)
+    {
+        UnlockCursor();
+        errorPanel.SetActive(true);
+        errorText.text = message;
+    }
+
+    void OnLevelEndSuccess()
+    {
+        PlayerDataManager.Instance.SavePlayerData();
+        SceneManager.LoadScene(1);
+    }
+
+    public void RetryLevelBegin()
+    {
+        NetworkManager.Instance.WebSocketCommandHandler.SendLevelBeginRequestCommand(0, OnLevelBeginSuccess, OnLevelBeginFail);
+    }
+
+    public void RetryLevelEnd()
+    {
+        NetworkManager.Instance.WebSocketCommandHandler.SendLevelEndRequestCommand(0, CalculateScore(),  OnLevelEndSuccess, OnLevelEndFail);
+    }
+
+    void OnLevelEndFail(int code, string message)
+    {
+        UnlockCursor();
+        errorPanel.SetActive(true);
+        errorText.text = message;
+    }
+
+    public void Exit()
+    {
+        NetworkManager.Instance.HealthStatusCheckService.Deactivate();
+        NetworkManager.Instance.WebSocketService.CloseConnection();
+        Application.Quit();
+    }
 }
+
+
