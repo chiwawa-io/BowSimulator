@@ -10,13 +10,6 @@ public class LoadMenu : MonoBehaviour
     {
         StartCoroutine(LoadMainMenu());
     }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
-
     IEnumerator LoadMainMenu()
     {
         yield return new WaitForSeconds(2.5f);

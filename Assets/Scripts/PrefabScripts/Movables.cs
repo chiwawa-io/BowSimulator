@@ -11,13 +11,13 @@ public class Movables : MonoBehaviour
 
     private void OnEnable()
     {
-        GameManager.onLowHealth += MonsterGrowling;
-        GameManager.onGameOver += Pauser;
+        GameManager.OnLowHealth += MonsterGrowling;
+        GameManager.OnGameOver += Pauser;
     }
     private void OnDisable()
     {
-        GameManager.onLowHealth -= MonsterGrowling;
-        GameManager.onGameOver -= Pauser;
+        GameManager.OnLowHealth -= MonsterGrowling;
+        GameManager.OnGameOver -= Pauser;
     }
 
     void Update()

@@ -4,25 +4,18 @@ using UnityEngine;
 
 public class Initializer : MonoBehaviour
 {
-    public static bool hasInitialized;
+    public static bool HasInitialized;
     void Start()
     {
-        if (hasInitialized) Destroy(gameObject);
+        if (HasInitialized) Destroy(gameObject);
         else
         {
-            
-            NetworkManager.Instance.WebSocketService.ConnectToServer(OnConnectionSuccess, OnConnectionFail);
-            hasInitialized = true;
+            GetPlayerData();
+            HasInitialized = true;
         }
     }
-    void OnConnectionSuccess()
+    void GetPlayerData()
     {
-        NetworkManager.Instance.HealthStatusCheckService.Activate();
         PlayerDataManager.Instance.LoadPlayerData();
-    }
-
-    void OnConnectionFail()
-    {
-        Debug.Log("Connection Failed");
     }
 }

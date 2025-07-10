@@ -41,16 +41,16 @@ public class Player : MonoBehaviour
     private WaitForSeconds _waitForSeconds = new WaitForSeconds(0.2f);
     private void OnEnable()
     {
-        GameManager.onLowHealth += OnLowHealth;
-        GameManager.onPause += OnPause;
-        GameManager.onGameOver += OnGameOver;
+        GameManager.OnLowHealth += OnLowHealth;
+        GameManager.OnPause += OnPause;
+        GameManager.OnGameOver += OnGameOver;
     }
 
     private void OnDisable()
     {
-        GameManager.onLowHealth -= OnLowHealth;
-        GameManager.onPause -= OnPause;
-        GameManager.onGameOver -= OnGameOver;
+        GameManager.OnLowHealth -= OnLowHealth;
+        GameManager.OnPause -= OnPause;
+        GameManager.OnGameOver -= OnGameOver;
     }
 
     void Start()

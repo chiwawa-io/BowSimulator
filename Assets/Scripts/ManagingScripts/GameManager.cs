@@ -21,10 +21,10 @@ public class GameManager : MonoBehaviour
     private float _targetTimeScale = 1f;
     private float _startFixedDeltaTime;
     
-    public static Action<int> onLowHealth;
-    public static Action<int> showHideOrbUi;
-    public static Action<bool> onPause;
-    public static Action onGameOver;
+    public static Action<int> OnLowHealth;
+    public static Action<int> ShowHideOrbUi;
+    public static Action<bool> OnPause;
+    public static Action OnGameOver;
     private void OnEnable()
     {
         TargetScript.OnTargetHit += UpdateTargetCount;
@@ -32,14 +32,13 @@ public class GameManager : MonoBehaviour
         Player.onOutOfArrows += ChangeTime;
         
         _playerMaxHp = (int)PlayerDataManager.Instance.Data.MaxHp;
-        _playerHealth = PlayerDataManager.Instance.nextLevelHp;
+        _playerHealth = PlayerDataManager.Instance.NextLevelHp;
         _hasGreenOrb = PlayerDataManager.Instance.Data.HasGreenOrb;
         _gameDuration = Time.time;
         _startFixedDeltaTime = Time.fixedDeltaTime;
         
-        FreezeTime();
+        Continue();
 
-        NetworkManager.Instance.WebSocketCommandHandler.SendLevelBeginRequestCommand(0, OnLevelBeginSuccess, OnLevelBeginFail);
     }
     private void OnDisable()
     {
@@ -57,7 +56,7 @@ public class GameManager : MonoBehaviour
             if (InputManager.InputActions.Player.Exit.WasPressedThisFrame())
             {
                 UnlockCursor();
-                onPause?.Invoke(true);
+                OnPause?.Invoke(true);
                 FreezeTime();
             }
 
@@ -67,8 +66,9 @@ public class GameManager : MonoBehaviour
             {
                 _playerHealth++;
                 _hasGreenOrb = false;
-                showHideOrbUi?.Invoke(1);
-                onLowHealth?.Invoke(1);
+                PlayerDataManager.Instance.GreenOrbUsed();
+                ShowHideOrbUi?.Invoke(1);
+                OnLowHealth?.Invoke(1);
             }
         
 
@@ -86,8 +86,8 @@ public class GameManager : MonoBehaviour
         if (_playerHealth <= _playerMaxHp * 0.5f)
         {
             UiManager.Instance.UpdateHealthBar(1);
-            onLowHealth?.Invoke(0);
-            if (_hasGreenOrb) showHideOrbUi?.Invoke(0);
+            OnLowHealth?.Invoke(0);
+            if (_hasGreenOrb) ShowHideOrbUi?.Invoke(0);
         }
 
         if (_playerHealth <= 0) {
@@ -98,15 +98,16 @@ public class GameManager : MonoBehaviour
             
             _changingTime = false;
             UnlockCursor();
-            onGameOver?.Invoke();
+            OnGameOver?.Invoke();
             FreezeTime();
         }
     }
     public void Continue()
     {
         LockCursor();
+        InputManager.Instance.EnablePlayerInput();
         UnFreezeTime();
-        onPause?.Invoke(false);
+        OnPause?.Invoke(false);
     }
 
 
@@ -132,7 +133,8 @@ public class GameManager : MonoBehaviour
     {
         if (InputManager.InputActions.Player.Reload.WasPressedThisFrame())
         {
-            NetworkManager.Instance.WebSocketCommandHandler.SendLevelEndRequestCommand(0, CalculateScore(),  OnLevelEndSuccess, OnLevelEndFail);
+            SceneManager.LoadScene(1);
+            PlayerDataManager.Instance.SavePlayerData();
             UnlockCursor();
         }
 
@@ -154,46 +156,10 @@ public class GameManager : MonoBehaviour
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
     }
-    void OnLevelBeginSuccess()
-    {
-        Continue();   
-    }
-
-    void OnLevelBeginFail(int code, string message)
-    {
-        UnlockCursor();
-        errorPanel.SetActive(true);
-        errorText.text = message;
-    }
-
-    void OnLevelEndSuccess()
+    public void Exit()
     {
         PlayerDataManager.Instance.SavePlayerData();
         SceneManager.LoadScene(1);
-    }
-
-    public void RetryLevelBegin()
-    {
-        NetworkManager.Instance.WebSocketCommandHandler.SendLevelBeginRequestCommand(0, OnLevelBeginSuccess, OnLevelBeginFail);
-    }
-
-    public void RetryLevelEnd()
-    {
-        NetworkManager.Instance.WebSocketCommandHandler.SendLevelEndRequestCommand(0, CalculateScore(),  OnLevelEndSuccess, OnLevelEndFail);
-    }
-
-    void OnLevelEndFail(int code, string message)
-    {
-        UnlockCursor();
-        errorPanel.SetActive(true);
-        errorText.text = message;
-    }
-
-    public void Exit()
-    {
-        NetworkManager.Instance.HealthStatusCheckService.Deactivate();
-        NetworkManager.Instance.WebSocketService.CloseConnection();
-        Application.Quit();
     }
 }
 

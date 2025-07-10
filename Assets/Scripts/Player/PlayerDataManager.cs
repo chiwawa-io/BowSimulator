@@ -1,7 +1,6 @@
-using Luxodd.Game.Scripts.Network;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using System;
+using System.IO;
 using UnityEngine;
 
 public class PlayerDataManager : MonoBehaviour
@@ -10,9 +9,12 @@ public class PlayerDataManager : MonoBehaviour
     
     public PlayerData Data {get; private set;}
 
-    public int nextLevelHp;
+    private int _nextLevelHp;
+    
+    public int NextLevelHp => _nextLevelHp;
+    private static bool _isNewPlayer;
 
-    public static Action<string> onPlayerDataError;
+    public static Action<string> OnPlayerDataError;
     
     void Awake()
     {
@@ -32,25 +34,19 @@ public class PlayerDataManager : MonoBehaviour
     
     public void LoadPlayerData()
     {
-        NetworkManager.Instance.WebSocketCommandHandler.SendGetUserDataRequestCommand(OnLoadPlayerDataSuccess, OnLoadPlayerDataFail);
-    }
+        string path = Path.Combine(Application.persistentDataPath, "PlayerData.json");
 
-    void OnLoadPlayerDataSuccess(object response)
-    {
-        var userDataPayload = (UserDataPayload)response;
-        var userDataRaw = userDataPayload.Data;
-        var userDataObject = (JObject)userDataRaw;
-
-        if (userDataObject != null)
+        if (File.Exists(path))
         {
-            Data = JsonConvert.DeserializeObject<PlayerData>(userDataObject["user_data"]?.ToString() ?? string.Empty);
-            nextLevelHp = (int)Data.MaxHp;
+            Data = JsonConvert.DeserializeObject<PlayerData>(File.ReadAllText(path));
+            _nextLevelHp = (int)Data.MaxHp;
         }
         else
         {
-            NetworkManager.Instance.WebSocketCommandHandler.SendProfileRequestCommand(OnPlayerNameGetSuccess, OnPlayerNameGetFail);
+            _isNewPlayer = true;
         }
     }
+    
 
 
     public void SavePlayerData()
@@ -61,18 +57,16 @@ public class PlayerDataManager : MonoBehaviour
         }
         else
         {
+            string path = Path.Combine(Application.persistentDataPath, "PlayerData.json");
+
             var json = JsonConvert.SerializeObject(Data);
-            NetworkManager.Instance.WebSocketCommandHandler.SendSetUserDataRequestCommand(json, OnSavePlayerDataSuccess, OnSavePlayerDataFail);
+            
+            File.WriteAllText(path, json);
         }
 
     }
 
-    void OnSavePlayerDataSuccess()
-    {
-        Debug.Log("PlayerDataManager: SavePlayerDataSuccess");
-    }
-
-    void OnPlayerNameGetSuccess(string playerName)
+    public void ChangeNewPlayerName(string playerName)
     {
         Data.Username = playerName;
         Data.CurrentXp = 0;
@@ -82,20 +76,6 @@ public class PlayerDataManager : MonoBehaviour
         Data.LightOrbs = 0;
         
         SavePlayerData();
-    }
-
-    void OnPlayerNameGetFail(int code, string msg)
-    {
-        onPlayerDataError?.Invoke(msg);
-    }
-    void OnLoadPlayerDataFail(int code, string msg)
-    {
-        onPlayerDataError?.Invoke(msg);
-    }
-
-    void OnSavePlayerDataFail(int code, string msg)
-    {
-        onPlayerDataError?.Invoke(msg);
     }
     
     public void OnBoughtItem(int id, int price)
@@ -107,21 +87,19 @@ public class PlayerDataManager : MonoBehaviour
             case 1:
                 Data.CurrentXp++;
                 CheckCurrentLevel();
-                nextLevelHp = (int)Data.MaxHp;
+                _nextLevelHp = (int)Data.MaxHp;
                 break;
             case 2:
-                nextLevelHp+=3;
+                _nextLevelHp+=3;
                 break;
             case 3:
                 Data.HasGreenOrb = true;
-                nextLevelHp = (int)Data.MaxHp;
+                _nextLevelHp = (int)Data.MaxHp;
                 
                 break;
             case 4:
                 // _hasDarkBow = true;
-                nextLevelHp = (int)Data.MaxHp;
-                break;
-            default:
+                _nextLevelHp = (int)Data.MaxHp;
                 break;
         }
     }
@@ -148,6 +126,16 @@ public class PlayerDataManager : MonoBehaviour
 
     public void ResetNextLevelHp()
     {
-        nextLevelHp = (int)Data.MaxHp;
+        _nextLevelHp = (int)Data.MaxHp;
+    }
+
+    public void GreenOrbUsed()
+    {
+        Data.HasGreenOrb = false;
+    }
+
+    public bool CheckForNewPlayer()
+    {
+        return _isNewPlayer;
     }
 }

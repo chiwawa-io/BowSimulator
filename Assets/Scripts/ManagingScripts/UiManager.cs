@@ -1,7 +1,9 @@
 using System.Collections;
 using TMPro;
+using Unity.VisualScripting;
 using UnityEngine.UI;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 public class UiManager : MonoBehaviour
 {
@@ -33,6 +35,8 @@ public class UiManager : MonoBehaviour
     [SerializeField] private Image itemSprite;
     [SerializeField] private GameObject items;
     [SerializeField] private GameObject buyMenuPopUp;
+    [SerializeField] private GameObject exitButton;
+    [SerializeField] private GameObject exitToMenu;
 
     [SerializeField] private GameObject mainMenu;
     [SerializeField] private GameObject playerProfile;
@@ -40,7 +44,9 @@ public class UiManager : MonoBehaviour
     [SerializeField] private TextMeshProUGUI playerNameInProfile;
     [SerializeField] private TextMeshProUGUI playerLevelInMainMenu;
     [SerializeField] private TextMeshProUGUI playerLevelInProfile;
-    
+    [SerializeField] private GameObject closePlayerProfileButton;
+    [SerializeField] private GameObject endlessButton;
+    [SerializeField] private EventSystem eventSystem;
     private int _comboCounter;
 
     private void OnEnable()
@@ -48,16 +54,16 @@ public class UiManager : MonoBehaviour
         TargetScript.OnTargetHit += UpdateProgressBar;
         Store.onPressItem += ShowStorePopup;
         Player.onOutOfArrows += OnOutOfArrows;
-        GameManager.showHideOrbUi += OnLowHealth;
-        GameManager.onPause += OnPause;
+        GameManager.ShowHideOrbUi += OnLowHealth;
+        GameManager.OnPause += OnPause;
     }
     private void OnDisable()
     {
         TargetScript.OnTargetHit -= UpdateProgressBar;
         Store.onPressItem -= ShowStorePopup;
         Player.onOutOfArrows -= OnOutOfArrows;
-        GameManager.showHideOrbUi -= OnLowHealth;
-        GameManager.onPause -= OnPause;
+        GameManager.ShowHideOrbUi -= OnLowHealth;
+        GameManager.OnPause -= OnPause;
     }
 
     void Start()
@@ -173,22 +179,17 @@ public class UiManager : MonoBehaviour
         Debug.Log(score);
     }
 
-    public void OpenClosePlayerProfile(int id)
+    public void OpenClosePlayerProfile(bool isOpen)
     {
-        switch (id)
+        if (isOpen)
         {
-            case 1:
-                mainMenu.SetActive(false);
-                playerProfile.SetActive(true);
-                break;
-            case 2:
-                mainMenu.SetActive(true);
-                playerProfile.SetActive(false);
-                break;
-            default:
-                mainMenu.SetActive(true);
-                playerProfile.SetActive(false);
-                break;
+            playerProfile.SetActive(true);
+            mainMenu.SetActive(false);
+        }
+        else
+        {
+            playerProfile.SetActive(false);
+            mainMenu.SetActive(true);
         }
     }
 
@@ -197,13 +198,28 @@ public class UiManager : MonoBehaviour
         if (balance != null) balance.text = $"{PlayerDataManager.Instance.Data.LightOrbs}";
     }
 
-    void UpdatePlayerName()
+    public void UpdatePlayerName()
     {
-        Debug.Log(PlayerDataManager.Instance.Data.Username);
         playerNameInMainMenu.text = PlayerDataManager.Instance.Data.Username;
         playerNameInProfile.text = PlayerDataManager.Instance.Data.Username;
     }
 
+
+    void DisplayPlayerData()
+    {
+        if (PlayerDataManager.Instance.Data.HasGreenOrb && greenOrbOverlay != null) 
+        {
+            greenOrbOverlay.SetActive(true);
+            greenOrbButton.SetActive(false);
+        }
+        if (balance != null) balance.text = $"{PlayerDataManager.Instance.Data.LightOrbs}";
+        if (playerProfile != null)
+        {
+            playerLevelInMainMenu.text = $"{PlayerDataManager.Instance.Data.Level}";   
+            playerLevelInProfile.text = $"{PlayerDataManager.Instance.Data.Level}";   
+            UpdatePlayerName();
+        }
+    }
     IEnumerator ComboCooldownRoutine(float waitTime)
     {
         _comboCounter++;
@@ -222,21 +238,5 @@ public class UiManager : MonoBehaviour
             }
         }
         
-    }
-
-    void DisplayPlayerData()
-    {
-        if (PlayerDataManager.Instance.Data.HasGreenOrb && greenOrbOverlay != null) 
-        {
-            greenOrbOverlay.SetActive(true);
-            greenOrbButton.SetActive(false);
-        }
-        if (balance != null) balance.text = $"{PlayerDataManager.Instance.Data.LightOrbs}";
-        if (playerProfile != null)
-        {
-            playerLevelInMainMenu.text = $"{PlayerDataManager.Instance.Data.Level}";   
-            playerLevelInProfile.text = $"{PlayerDataManager.Instance.Data.Level}";   
-            UpdatePlayerName();
-        }
     }
 }
